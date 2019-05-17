@@ -160,8 +160,25 @@ class Bullet(pygame.sprite.Sprite):
     def update(self):
         self.rect.y += self.speedy
         # kill if it moves off the top of the screen
+        if self.rect.top > HEIGHT:
+            self.kill()
+
+class Pow(pygame.sprite.Sprite):
+    def __init__(self, center):
+        pygame.sprite.Sprite.__init__(self)
+        self.type = random.choice(['shield', 'gun'])
+        self.image = powerup_images[self.type]
+        self.image.set_colorkey(BLACK)
+        self.rect = self.image.get_rect()
+        self.rect.center = center
+        self.speedy = 2
+
+    def update(self):
+        self.rect.y += self.speedy
+        # kill if it moves off the top of the screen
         if self.rect.bottom < 0:
             self.kill()
+
 
 class Explosion(pygame.sprite.Sprite):
     def __init__(self, center, size):
@@ -216,7 +233,10 @@ for i in range(9):
     img.set_colorkey(BLACK)
     explosion_anim['player'].append(img)
     
-        
+powerup_images = {}
+powerup_images['shield'] = pygame.image.load(path.join(img_dir, "shield_gold.png")).convert()
+powerup_images['gun'] = pygame.image.load(path.join(img_dir, "bolt_gold.png")).convert()
+
 # Load all game sounds
 shoot_sound = pygame.mixer.Sound(path.join(snd_dir, 'pew.wav'))
 expl_sounds = []
@@ -229,6 +249,7 @@ pygame.mixer.music.set_volume(0.4)
 all_sprites = pygame.sprite.Group()
 mobs = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
+powerups = pygame.sprite.Group()
 player = Player()
 all_sprites.add(player)
 for i in range(8):
@@ -258,6 +279,10 @@ while running:
         random.choice(expl_sounds).play()
         expl = Explosion(hit.rect.center, 'lg')
         all_sprites.add(expl)
+        if random.random () > 0.1:
+            pow = Pow(hit.rect.center)
+            all_sprites.add(pow)
+            powerups.add(pow)
         newmob()
 
     # check to see if a mob hit the player
@@ -274,6 +299,14 @@ while running:
             player.hide()
             player.lives -= 1
             player.shield = 100
+
+    # check to see if player hit a powerup
+    hits = pygame.sprite.spritecollide(player, powerups, True)
+    for hit in hits:
+        if hit.type == 'shield':
+            player.shield += random.randrange(10, 30)
+            if player.shield >= 100:
+                player.shield = 100
 
     # if the player died and the explosion has finished playing
     if player.lives == 0 and not death_explosion.alive():
